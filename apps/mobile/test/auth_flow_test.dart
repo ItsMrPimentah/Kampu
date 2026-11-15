@@ -1,55 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:showtime_mobile/app/auth/auth_client.dart';
-import 'package:showtime_mobile/app/auth/auth_repository.dart';
+import 'package:showtime_mobile/app/auth_provider.dart';
 import 'package:showtime_mobile/main.dart';
-import 'package:showtime_mobile/core/eligibility/eligibility.dart';
-import 'package:showtime_mobile/shared/external/utils/result.dart';
 
-class FakeAuth extends AuthClient {
-  bool session = false;
-  @override
-  bool get hasSession => session;
-
-  @override
-  Future<void> restore() async {
-    initialized = true;
-    notifyListeners();
-  }
-
-  @override
-  Future<AuthResult> login(String identifier, String password) async {
-    session = true;
-    phone = '+351912345678';
-    verified = false;
-    notifyListeners();
-    return const Result.val(Ok());
-  }
-
-  @override
-  Future<AuthResult> verify(String code) async {
-    if (code != '123456') return const Result.err(AuthFailure.unauthorized);
-    eligibility = evaluateEligibility('2000-01-01');
-    verified = true;
-    notifyListeners();
-    return const Result.val(Ok());
-  }
-
-  @override
-  Future<AuthResult> logout() async {
-    session = false;
-    verified = false;
-    notifyListeners();
-    return const Result.val(Ok());
-  }
-}
+import 'mocks/auth_fake.dart';
 
 void main() {
   testWidgets(
     'unverified sign-in stays at OTP until a valid code and sign-out returns to login',
     (tester) async {
-      final auth = FakeAuth();
-      await tester.pumpWidget(ShowtimeApp(auth: auth));
+      final auth = FakeAuthRepository();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [authRepositoryProvider.overrideWithValue(auth)],
+          child: const ShowtimeApp(),
+        ),
+      );
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('login-identifier')),
@@ -83,4 +50,30 @@ void main() {
       expect(find.text('WELCOME BACK, BALLER'), findsOneWidget);
     },
   );
+
+  testWidgets('verified sign-in enters the authenticated shell', (
+    tester,
+  ) async {
+    final auth = FakeAuthRepository(verified: true);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authRepositoryProvider.overrideWithValue(auth)],
+        child: const ShowtimeApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('login-identifier')),
+      'player@example.com',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('login-password')),
+      'Password1!',
+    );
+    await tester.ensureVisible(find.text('SIGN IN & PLAY'));
+    await tester.tap(find.text('SIGN IN & PLAY'));
+    await tester.pumpAndSettle();
+    expect(find.text('Discover'), findsWidgets);
+    expect(find.text('VERIFY YOUR PHONE'), findsNothing);
+  });
 }

@@ -94,3 +94,10 @@ export function loadConfig(values: NodeJS.ProcessEnv = process.env): AppConfig {
     },
   };
 }
+
+// Nest publishes the object returned by validate to process.env. Preserve the
+// original environment keys for services that consume them directly, while
+// retaining the parsed configuration for ConfigService consumers.
+export function validateEnvironment(values: NodeJS.ProcessEnv) {
+  return { ...values, ...loadConfig(values) };
+}

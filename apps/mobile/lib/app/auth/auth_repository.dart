@@ -42,56 +42,44 @@ class AuthRepository {
     }
   }
 
-  /// Requests a new session and persists its token.
+  /// Persists a validated session token in secure storage.
+  Future<AuthResult> saveToken(String token) async {
+    try {
+      await storage.write(key: _tokenKey, value: token);
+      return const Result.val(Ok());
+    } on PlatformException {
+      return const Result.err(AuthFailure.unavailable);
+    }
+  }
+
+  /// Requests a new session.
   Future<Result<Map<String, dynamic>, AuthFailure>> login(
     String identifier,
     String password,
-  ) => _authenticate('/auth/login', {
-    'identifier': identifier,
-    'password': password,
-  }, requireSent: false);
+  ) => _request(
+    () => dio.post<Map<String, dynamic>>(
+      '/auth/login',
+      data: {'identifier': identifier, 'password': password},
+    ),
+  );
 
-  /// Registers a user and persists the resulting session token.
+  /// Registers a user and requests a session.
   Future<Result<Map<String, dynamic>, AuthFailure>> register(
     RegistrationSubmission input,
-  ) => _authenticate('/auth/register', {
-    'name': input.fullName,
-    'email': input.email,
-    'phone': input.phone.replaceAll(RegExp(r'[\s()-]'), ''),
-    'password': input.password,
-    'dateOfBirth': input.dateOfBirth,
-    'role': input.role.name,
-    'acceptedTerms': true,
-  }, requireSent: true);
-
-  Future<Result<Map<String, dynamic>, AuthFailure>> _authenticate(
-    String path,
-    Map<String, dynamic> body, {
-    required bool requireSent,
-  }) async {
-    final response = await _request(
-      () => dio.post<Map<String, dynamic>>(path, data: body),
-    );
-    return response.when(
-      val: (data) async {
-        final token = data['token'];
-        if (token is! String ||
-            token.isEmpty ||
-            data['verified'] is! bool ||
-            (data['phone'] != null && data['phone'] is! String) ||
-            (requireSent && data['sent'] is! bool)) {
-          return const Result.err(AuthFailure.invalidResponse);
-        }
-        try {
-          await storage.write(key: _tokenKey, value: token);
-          return Result.val(data);
-        } on PlatformException {
-          return const Result.err(AuthFailure.unavailable);
-        }
+  ) => _request(
+    () => dio.post<Map<String, dynamic>>(
+      '/auth/register',
+      data: {
+        'name': input.fullName,
+        'email': input.email,
+        'phone': input.phone.replaceAll(RegExp(r'[\s()-]'), ''),
+        'password': input.password,
+        'dateOfBirth': input.dateOfBirth,
+        'role': input.role.name,
+        'acceptedTerms': true,
       },
-      err: (error) async => Result.err(error),
-    );
-  }
+    ),
+  );
 
   /// Retrieves the server's current session for [token].
   Future<Result<Map<String, dynamic>, AuthFailure>> session(String token) =>

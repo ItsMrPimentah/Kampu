@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:showtime_mobile/app/auth/auth_client.dart';
+import 'package:showtime_mobile/app/auth/session_controller.dart';
 import 'package:showtime_mobile/app/navigation/app_router.dart';
 import 'package:showtime_mobile/app/theme.dart';
 import 'package:showtime_mobile/core/eligibility/eligibility.dart';
 import 'package:showtime_mobile/screens/auth/login_screen.dart';
 import 'package:showtime_mobile/screens/registration/registration_screen.dart';
+
+import 'mocks/auth_fake.dart';
 
 void main() {
   testWidgets('phone icon stays neutral when empty and invalid', (
@@ -81,8 +83,12 @@ void main() {
 
   testWidgets('direct registration back falls back to login', (tester) async {
     final eligibility = ValueNotifier<EligibilityDecision?>(null);
-    final auth = AuthClient()..initialized = true;
-    final router = createShowtimeRouter(eligibility: eligibility, auth: auth);
+    final auth = SessionController(FakeAuthRepository());
+    await auth.restore();
+    final router = createShowtimeRouter(
+      eligibility: eligibility,
+      session: auth,
+    );
     addTearDown(() {
       router.dispose();
       auth.dispose();

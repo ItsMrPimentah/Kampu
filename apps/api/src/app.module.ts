@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { HealthController } from './health.controller';
-import { loadConfig } from './config/env';
+import { validateEnvironment } from './config/env';
 import { IdentityController } from './modules/identity/identity.controller';
 import { AuthController } from './modules/identity/auth.controller';
 import { AuthService } from './modules/identity/auth.service';
@@ -21,7 +21,7 @@ import { OperatorMetricsModule } from './modules/analytics/operator-metrics.modu
 import { OperatorModule } from './modules/operator/operator.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true, cache: true, validate: loadConfig }), AuditModule, PlayersModule, TeamsModule, MatchesModule, VenuesModule, PaymentsModule, NotificationsModule, AdvertisingModule, AnalyticsModule, OperatorMetricsModule, OperatorModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true, cache: true, validate: validateEnvironment }), AuditModule, PlayersModule, TeamsModule, MatchesModule, VenuesModule, PaymentsModule, NotificationsModule, AdvertisingModule, AnalyticsModule, OperatorMetricsModule, OperatorModule],
   controllers: [HealthController, IdentityController, AuthController, CommunityController],
   providers: [PolicyGuard, AuthService, CommunityService],
 })

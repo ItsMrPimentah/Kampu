@@ -59,6 +59,7 @@ class _StitchNavigationDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.midnight;
+    final enlarged = MediaQuery.textScalerOf(context).scale(10) > 12;
     const labels = ['Discover', 'Challenges', 'Pitches', 'Squad'];
     const icons = [
       StitchAssets.discoverIcon,
@@ -70,12 +71,11 @@ class _StitchNavigationDock extends StatelessWidget {
       color: Colors.transparent,
       child: Container(
         key: const ValueKey('stitch-navigation-dock'),
-        height: 68,
-        constraints: const BoxConstraints(maxWidth: 430),
+        constraints: const BoxConstraints(maxWidth: 430, minHeight: 68),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
         decoration: BoxDecoration(
           color: tokens.carbon.withValues(alpha: 0.97),
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(enlarged ? 28 : 999),
           border: Border.all(color: tokens.borderSubtle),
           boxShadow: const [
             BoxShadow(
@@ -85,18 +85,36 @@ class _StitchNavigationDock extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
-          children: List.generate(
-            labels.length,
-            (index) => Expanded(
-              child: _DockDestination(
-                label: labels[index],
-                icon: icons[index],
-                selected: navigation.selectedIndex == index,
-                onTap: () => navigation.goToDestination(index),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (
+              var start = 0;
+              start < labels.length;
+              start += enlarged ? 2 : 4
+            )
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (
+                      var index = start;
+                      index < start + (enlarged ? 2 : 4);
+                      index++
+                    )
+                      Expanded(
+                        child: _DockDestination(
+                          label: labels[index],
+                          icon: icons[index],
+                          selected: navigation.selectedIndex == index,
+                          horizontal: enlarged,
+                          onTap: () => navigation.goToDestination(index),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ),
+          ],
         ),
       ),
     );
@@ -108,12 +126,14 @@ class _DockDestination extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.selected,
+    required this.horizontal,
     required this.onTap,
   });
 
   final String label;
   final IconData icon;
   final bool selected;
+  final bool horizontal;
   final VoidCallback onTap;
 
   @override
@@ -131,45 +151,59 @@ class _DockDestination extends StatelessWidget {
           borderRadius: BorderRadius.circular(999),
           child: Container(
             constraints: const BoxConstraints(minHeight: 48),
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
             decoration: selected
                 ? BoxDecoration(
                     gradient: tokens.ctaGradient,
                     borderRadius: BorderRadius.circular(999),
                   )
                 : null,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 19, color: selected ? Colors.white : color),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: color,
-                    fontFamily: 'JetBrains Mono',
-                    fontSize: 10,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+            child: horizontal
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, size: 19, color: color),
+                      const SizedBox(width: 6),
+                      Flexible(child: _label(color)),
+                    ],
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        icon,
+                        size: 19,
+                        color: selected ? Colors.white : color,
+                      ),
+                      const SizedBox(height: 2),
+                      _label(color),
+                      if (selected)
+                        Container(
+                          width: 4,
+                          height: 4,
+                          margin: const EdgeInsets.only(top: 2),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
                   ),
-                ),
-                if (selected)
-                  Container(
-                    width: 4,
-                    height: 4,
-                    margin: const EdgeInsets.only(top: 2),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-              ],
-            ),
           ),
         ),
       ),
     );
   }
+
+  Widget _label(Color color) => Text(
+    label,
+    textAlign: TextAlign.center,
+    style: TextStyle(
+      color: color,
+      fontFamily: horizontal ? 'Inter' : 'JetBrains Mono',
+      fontSize: 10,
+      fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+    ),
+  );
 }

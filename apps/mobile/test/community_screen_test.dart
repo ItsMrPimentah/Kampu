@@ -3,22 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:showtime_mobile/screens/community/community_screen.dart';
-import 'package:showtime_mobile/app/auth/auth_client.dart';
+import 'package:showtime_mobile/app/auth/session_controller.dart';
 import 'package:showtime_mobile/app/navigation/app_router.dart';
 import 'package:showtime_mobile/core/eligibility/eligibility.dart';
 import 'package:showtime_mobile/shared/ui/ui.dart';
 
 import 'mocks/community_fake.dart';
-
-class _VerifiedAuth extends AuthClient {
-  _VerifiedAuth() {
-    initialized = true;
-    verified = true;
-  }
-
-  @override
-  bool get hasSession => true;
-}
+import 'mocks/auth_fake.dart';
 
 GoRouter _router(CommunityFake repository) => GoRouter(
   initialLocation: '/games',
@@ -44,11 +35,14 @@ void main() {
     'authenticated community pages support deep links and guarded routes',
     (tester) async {
       final repository = CommunityFake();
-      final auth = _VerifiedAuth();
+      final auth = SessionController(
+        FakeAuthRepository(verified: true, token: 'token'),
+      );
+      await auth.restore();
       final eligibility = ValueNotifier<EligibilityDecision?>(null);
       final router = createShowtimeRouter(
         eligibility: eligibility,
-        auth: auth,
+        session: auth,
         community: repository,
       );
       addTearDown(() {

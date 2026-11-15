@@ -113,7 +113,7 @@ class StitchStatusPill extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(6),
           border: Border.all(color: color.withValues(alpha: 0.35)),
         ),
         child: LayoutBuilder(

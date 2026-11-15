@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:showtime_mobile/app/auth/auth_client.dart';
-import 'package:showtime_mobile/app/auth_provider.dart';
+import 'package:showtime_mobile/app/auth/session_controller.dart';
 import 'package:showtime_mobile/screens/auth/login_screen.dart';
 import 'package:showtime_mobile/screens/auth/verify_phone_screen.dart';
 import 'package:showtime_mobile/screens/community/community_screen.dart';
 import 'package:showtime_mobile/core/community/community_repository.dart';
-import 'package:showtime_mobile/shared/external/http/api_client.dart';
 import 'package:showtime_mobile/screens/challenges/challenge_detail_screen.dart';
 import 'package:showtime_mobile/screens/challenges/challenges_screen.dart';
 import 'package:showtime_mobile/screens/discovery/home_screen.dart';
@@ -30,8 +28,7 @@ import 'navigation_controller.dart';
 
 GoRouter createShowtimeRouter({
   required ValueNotifier<EligibilityDecision?> eligibility,
-  AuthClient? auth,
-  AuthSessionController? session,
+  SessionController? session,
   Listenable? sessionChanges,
   CommunityRepository? community,
   VoidCallback? onRegister,
@@ -39,56 +36,44 @@ GoRouter createShowtimeRouter({
   late final GoRouter router;
   late final NavigationController navigation;
   Future<bool> login(String identifier, String password) async =>
-      (await (session?.login(identifier, password) ??
-              auth?.login(identifier, password)))
-          ?.when(val: (_) => true, err: (_) => false) ??
+      (await session?.login(
+        identifier,
+        password,
+      ))?.when(val: (_) => true, err: (_) => false) ??
       false;
   Future<bool> verify(String code) async =>
-      (await (session?.verify(code) ?? auth?.verify(code)))?.when(
-        val: (_) => true,
-        err: (_) => false,
-      ) ??
-      false;
-  Future<bool> resend() async =>
-      (await (session?.resend() ?? auth?.resend()))?.when(
-        val: (_) => true,
-        err: (_) => false,
-      ) ??
-      false;
-  Future<bool> signOut() async =>
-      (await (session?.logout() ?? auth?.logout()))?.when(
-        val: (_) => true,
-        err: (_) => false,
-      ) ??
-      false;
-  Future<bool> register(RegistrationSubmission submission) async =>
-      (await (session?.register(submission) ?? auth?.register(submission)))
+      (await session?.verify(code))
           ?.when(val: (_) => true, err: (_) => false) ??
       false;
-  final dio = auth != null && community == null ? createApiClient() : null;
-  final communityRepository =
-      community ??
-      (auth == null || dio == null
-          ? null
-          : DioCommunityRepository(dio: dio, token: () => auth.sessionToken));
+  Future<bool> resend() async =>
+      (await session?.resend())?.when(val: (_) => true, err: (_) => false) ??
+      false;
+  Future<bool> signOut() async =>
+      (await session?.logout())?.when(val: (_) => true, err: (_) => false) ??
+      false;
+  Future<bool> register(RegistrationSubmission submission) async =>
+      (await session?.register(submission))
+          ?.when(val: (_) => true, err: (_) => false) ??
+      false;
+  final communityRepository = community;
 
   router = GoRouter(
-    initialLocation: auth == null ? '/onboarding' : '/login',
-    refreshListenable: sessionChanges ?? auth ?? eligibility,
+    initialLocation: session == null ? '/onboarding' : '/login',
+    refreshListenable: sessionChanges ?? eligibility,
     redirect: (context, state) {
-      if (auth != null) {
-        final snapshot = session?.snapshot;
+      if (session != null) {
+        final snapshot = session.snapshot;
         final path = state.matchedLocation;
-        if (!(snapshot?.initialized ?? auth.initialized)) {
+        if (!snapshot.initialized) {
           return path == '/loading' ? null : '/loading';
         }
-        if (snapshot?.connectionFailed ?? auth.connectionFailed) {
+        if (snapshot.connectionFailed) {
           return path == '/loading' ? null : '/loading';
         }
-        if (!(snapshot?.hasSession ?? auth.hasSession)) {
+        if (!snapshot.hasSession) {
           return path == '/login' || path == '/register' ? null : '/login';
         }
-        if (!(snapshot?.verified ?? auth.verified)) {
+        if (!snapshot.verified) {
           return path == '/verify-phone' ? null : '/verify-phone';
         }
         if (path == '/login' ||
@@ -109,19 +94,18 @@ GoRouter createShowtimeRouter({
     },
     errorBuilder: (context, state) => const NotFoundScreen(),
     routes: [
-      if (auth != null) ...[
+      if (session != null) ...[
         GoRoute(
           path: '/loading',
           builder: (context, state) => Scaffold(
             body: Center(
-              child:
-                  (session?.snapshot.connectionFailed ?? auth.connectionFailed)
+              child: session.snapshot.connectionFailed
                   ? Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Text('Unable to connect to ShowTime.'),
                         TextButton(
-                          onPressed: session?.restore ?? auth.restore,
+                          onPressed: session.restore,
                           child: const Text('Retry'),
                         ),
                       ],
@@ -140,8 +124,8 @@ GoRouter createShowtimeRouter({
         GoRoute(
           path: '/verify-phone',
           builder: (context, state) => VerifyPhoneScreen(
-            phone: session?.snapshot.phone ?? auth.phone ?? '',
-            smsSent: session?.snapshot.smsSent ?? auth.smsSent,
+            phone: session.snapshot.phone ?? '',
+            smsSent: session.snapshot.smsSent,
             onVerify: verify,
             onResend: resend,
             onSignOut: signOut,
@@ -165,15 +149,15 @@ GoRouter createShowtimeRouter({
             if (context.canPop()) {
               context.pop();
             } else {
-              context.go(auth == null ? '/onboarding' : '/login');
+              context.go(session == null ? '/onboarding' : '/login');
             }
           },
-          onLogin: () => context.go(auth == null ? '/onboarding' : '/login'),
+          onLogin: () => context.go(session == null ? '/onboarding' : '/login'),
           onContinue: (_) {},
-          onRegister: auth == null ? null : register,
+          onRegister: session == null ? null : register,
         ),
       ),
-      if (auth != null && communityRepository != null)
+      if (session != null && communityRepository != null)
         GoRoute(
           path: '/community/:section/new',
           builder: (context, state) {
@@ -185,7 +169,7 @@ GoRouter createShowtimeRouter({
             );
           },
         ),
-      if (auth != null && communityRepository != null)
+      if (session != null && communityRepository != null)
         GoRoute(
           path: '/community/:section/:itemId',
           builder: (context, state) {
@@ -204,29 +188,27 @@ GoRouter createShowtimeRouter({
       ShellRoute(
         builder: (context, state, child) => AuthenticatedShell(
           navigation: navigation,
-          onSignOut: session?.logout ?? auth?.logout,
+          onSignOut: session?.logout,
           child: child,
         ),
         routes: [
           GoRoute(
             path: '/home',
             builder: (context, state) =>
-                auth != null && communityRepository != null
+                session != null && communityRepository != null
                 ? CommunityDiscoveryScreen(repository: communityRepository)
                 : HomeScreen(
                     openHub: navigation.openExistingHub,
                     openDestination: navigation.goToDestination,
                     openChallenge: navigation.openChallenge,
                     eligibility:
-                        session?.snapshot.eligibility ??
-                        auth?.eligibility ??
-                        eligibility.value,
+                        session?.snapshot.eligibility ?? eligibility.value,
                   ),
           ),
           GoRoute(
             path: '/challenges',
             builder: (context, state) =>
-                auth != null && communityRepository != null
+                session != null && communityRepository != null
                 ? CommunityScreen(
                     repository: communityRepository,
                     section: 'challenges',
@@ -256,7 +238,7 @@ GoRouter createShowtimeRouter({
           GoRoute(
             path: '/squad',
             builder: (context, state) =>
-                auth != null && communityRepository != null
+                session != null && communityRepository != null
                 ? CommunityScreen(
                     repository: communityRepository,
                     section: 'teams',
@@ -266,7 +248,7 @@ GoRouter createShowtimeRouter({
           GoRoute(
             path: '/matches',
             builder: (context, state) =>
-                auth != null && communityRepository != null
+                session != null && communityRepository != null
                 ? CommunityScreen(
                     repository: communityRepository,
                     section: 'games',
@@ -286,9 +268,7 @@ GoRouter createShowtimeRouter({
             builder: (context, state) => NotificationSafetyScreen(
               notifications: const [],
               isYouth:
-                  (session?.snapshot.eligibility ??
-                          auth?.eligibility ??
-                          eligibility.value)
+                  (session?.snapshot.eligibility ?? eligibility.value)
                       ?.category ==
                   EligibilityCategory.youth,
             ),
@@ -296,7 +276,7 @@ GoRouter createShowtimeRouter({
           GoRoute(
             path: '/teams',
             builder: (context, state) =>
-                auth != null && communityRepository != null
+                session != null && communityRepository != null
                 ? CommunityScreen(
                     repository: communityRepository,
                     section: 'teams',

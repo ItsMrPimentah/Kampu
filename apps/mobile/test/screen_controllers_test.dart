@@ -79,18 +79,19 @@ void main() {
   test(
     'pitch reservation respects native availability and external authority',
     () {
-      final controller = PitchesController(LocalFixtures.load());
+      final controller = PitchesController(LocalFixtures.load().venues);
       addTearDown(controller.dispose);
-      final native = controller.state.data.venues.firstWhere(
+      final native = controller.state.data.firstWhere(
         (v) => v.source == VenueSource.native,
       );
-      final external = controller.state.data.venues.firstWhere(
+      final external = controller.state.data.firstWhere(
         (v) => v.source == VenueSource.external,
       );
       final slot = native.slots.firstWhere(
         (slot) => slot.state == SlotState.available,
       );
       expect(controller.reserve(external, external.slots.first), isFalse);
+      controller.selectSlot(slot);
       expect(controller.reserve(native, slot), isTrue);
       expect(controller.state.stateFor(slot), SlotState.confirmed);
       expect(controller.reserve(native, slot), isFalse);

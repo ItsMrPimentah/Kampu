@@ -3,19 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:showtime_mobile/app/auth/auth_client.dart';
+import 'package:showtime_mobile/app/auth_provider.dart';
 import 'package:showtime_mobile/main.dart';
 import 'package:showtime_mobile/core/eligibility/eligibility.dart';
 import 'package:showtime_mobile/core/registration/registration_models.dart';
 import 'package:showtime_mobile/screens/registration/registration_screen.dart';
 
-class TestAuth extends AuthClient {
-  @override
-  Future<void> restore() async {
-    initialized = true;
-    notifyListeners();
-  }
-}
+import 'mocks/auth_fake.dart';
 
 void main() {
   Future<void> pumpRegisterScreen(
@@ -243,7 +237,14 @@ void main() {
   testWidgets('login opens registration and back returns to login', (
     tester,
   ) async {
-    await tester.pumpWidget(ShowtimeApp(auth: TestAuth()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+        ],
+        child: const ShowtimeApp(),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.text('WELCOME BACK, BALLER'), findsOneWidget);
 

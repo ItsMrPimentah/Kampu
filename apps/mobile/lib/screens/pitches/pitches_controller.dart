@@ -1,131 +1,181 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:showtime_mobile/core/discovery/local_fixtures.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:showtime_mobile/core/discovery/local_models.dart';
+import 'package:showtime_mobile/core/discovery/pitch_preview_fixtures.dart';
+
+part 'pitches_controller.freezed.dart';
 
 /// Local pitch discovery and reservation state.
-class PitchesState {
-  /// Creates pitch discovery state.
-  const PitchesState({
-    required this.data,
-    this.format,
-    this.surface,
-    this.day,
-    this.maxDistance = 10,
-    this.selectedSlot,
-    this.retryMessage,
-    this.notified = false,
-    this.slotStates = const {},
-  });
+@freezed
+abstract class PitchesState with _$PitchesState {
+  const PitchesState._();
 
-  /// Preview data.
-  final LocalPresentationData data;
+  const factory PitchesState({
+    required List<PitchVenue> data,
+    @Default('') String query,
+    FootballFormat? format,
+    SurfaceType? surface,
+    DateTime? date,
+    @Default(10) double maxDistance,
+    String? selectedSlot,
+    String? retryMessage,
+    @Default(false) bool notified,
+    @Default({}) Map<String, SlotState> slotStates,
+  }) = _PitchesState;
 
-  /// Selected format filter.
-  final FootballFormat? format;
+  /// The visible venue and slot set share the same date predicate.
+  List<PitchVenue> get venues {
+    final search = query.trim().toLowerCase();
+    return data
+        .where(
+          (venue) =>
+              (search.isEmpty ||
+                  '${venue.name} ${venue.address}'.toLowerCase().contains(
+                    search,
+                  )) &&
+              (format == null || venue.format == format) &&
+              (surface == null || venue.surface == surface) &&
+              venue.distanceKm <= maxDistance,
+        )
+        .map(
+          (venue) => venue.copyWith(
+            slots: venue.slots
+                .where((slot) => date == null || sameDate(slot.startsAt, date!))
+                .toList(),
+          ),
+        )
+        .where((venue) => venue.slots.isNotEmpty)
+        .toList();
+  }
 
-  /// Selected surface filter.
-  final SurfaceType? surface;
+  /// Stable dates represented in the fixture set.
+  List<DateTime> get dates {
+    final dates = data
+        .expand((venue) => venue.slots)
+        .map(
+          (slot) => DateTime(
+            slot.startsAt.year,
+            slot.startsAt.month,
+            slot.startsAt.day,
+          ),
+        )
+        .toSet()
+        .toList();
+    dates.sort();
+    return dates;
+  }
 
-  /// Selected day filter.
-  final int? day;
-
-  /// Maximum distance in kilometres.
-  final double maxDistance;
-
-  /// Selected slot identifier.
-  final String? selectedSlot;
-
-  /// Local refresh feedback.
-  final String? retryMessage;
-
-  /// Whether the local notification was requested.
-  final bool notified;
-
-  /// Slot states modified in the local preview.
-  final Map<String, SlotState> slotStates;
-
-  /// Venues matching all selected filters.
-  List<PitchVenue> get venues => data.venues
-      .where(
-        (venue) =>
-            (day == null ||
-                venue.slots.any((slot) => slot.startsAt.day == day)) &&
-            (format == null || venue.format == format) &&
-            (surface == null || venue.surface == surface) &&
-            venue.distanceKm <= maxDistance,
-      )
+  /// Sample dates that yield venues without changing the other filters.
+  List<DateTime> get alternativeDates => dates
+      .where((candidate) => date == null || !sameDate(candidate, date!))
+      .where((candidate) => copyWith(date: candidate).venues.isNotEmpty)
       .toList();
 
   /// Effective preview status of a slot.
   SlotState stateFor(PitchSlot slot) => slotStates[slot.id] ?? slot.state;
+
+  /// Matching sample options for a date, independent of the current date filter.
+  /// Unavailable and locally confirmed slots are not options; pending and
+  /// external slots are included without implying provider availability.
+  int sampleOptionsForDate(DateTime candidate) => copyWith(date: candidate)
+      .venues
+      .expand((venue) => venue.slots)
+      .where(
+        (slot) => switch (stateFor(slot)) {
+          SlotState.available ||
+          SlotState.pending ||
+          SlotState.external => true,
+          SlotState.confirmed || SlotState.soldOut => false,
+        },
+      )
+      .length;
+}
+
+/// Compares calendar dates without discarding month or year.
+bool sameDate(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
+/// Rounded split estimate, when the roster size is defined.
+double? pitchSplitEstimate(PitchVenue venue, PitchSlot slot) {
+  final players = switch (venue.format) {
+    FootballFormat.fiveAside => 10,
+    FootballFormat.sevenAside => 14,
+    FootballFormat.elevenAside => 22,
+    FootballFormat.futsal => null,
+  };
+  return players == null ? null : slot.price / players;
 }
 
 /// Coordinates pitch filters and local reservation decisions.
 class PitchesController extends StateNotifier<PitchesState> {
-  /// Creates the pitch screen controller.
-  PitchesController(LocalPresentationData data)
-    : super(PitchesState(data: data));
+  PitchesController(List<PitchVenue> data, {String? initialSlot})
+    : super(PitchesState(data: data, selectedSlot: initialSlot));
 
-  void _update({
-    FootballFormat? format,
-    bool changeFormat = false,
-    SurfaceType? surface,
-    bool changeSurface = false,
-    int? day,
-    bool changeDay = false,
-    double? maxDistance,
-    String? selectedSlot,
-    String? retryMessage,
-    bool? notified,
-    Map<String, SlotState>? slotStates,
-  }) {
-    state = PitchesState(
-      data: state.data,
-      format: changeFormat ? format : state.format,
-      surface: changeSurface ? surface : state.surface,
-      day: changeDay ? day : state.day,
-      maxDistance: maxDistance ?? state.maxDistance,
-      selectedSlot: selectedSlot ?? state.selectedSlot,
-      retryMessage: retryMessage ?? state.retryMessage,
-      notified: notified ?? state.notified,
-      slotStates: Map.unmodifiable(slotStates ?? state.slotStates),
-    );
+  void _filter(PitchesState next) {
+    final visible = next.venues.expand((venue) => venue.slots);
+    if (!visible.any(
+      (slot) =>
+          slot.id == next.selectedSlot &&
+          next.stateFor(slot) != SlotState.soldOut,
+    )) {
+      next = next.copyWith(selectedSlot: null);
+    }
+    state = next;
   }
 
-  /// Changes the selected date.
-  void selectDay(int? value) => _update(day: value, changeDay: true);
-
-  /// Changes the selected format.
+  void search(String value) => _filter(state.copyWith(query: value));
+  void selectDate(DateTime? value) => _filter(state.copyWith(date: value));
   void selectFormat(FootballFormat? value) =>
-      _update(format: value, changeFormat: true);
-
-  /// Changes the selected surface.
+      _filter(state.copyWith(format: value));
   void selectSurface(SurfaceType? value) =>
-      _update(surface: value, changeSurface: true);
+      _filter(state.copyWith(surface: value));
+  void selectDistance(double value) =>
+      _filter(state.copyWith(maxDistance: value));
+  void clearFilters() => _filter(
+    state.copyWith(
+      query: '',
+      date: null,
+      format: null,
+      surface: null,
+      maxDistance: 10,
+    ),
+  );
 
-  /// Changes the maximum distance.
-  void selectDistance(double value) => _update(maxDistance: value);
+  void selectSlot(PitchSlot slot) {
+    final visibleSlot = state.venues
+        .expand((venue) => venue.slots)
+        .where((item) => item.id == slot.id)
+        .firstOrNull;
+    if (visibleSlot != null &&
+        state.stateFor(visibleSlot) != SlotState.soldOut) {
+      state = state.copyWith(selectedSlot: visibleSlot.id);
+    }
+  }
 
-  /// Selects a slot.
-  void selectSlot(PitchSlot slot) => _update(selectedSlot: slot.id);
-
-  /// Marks a local notification request.
-  void notify() => _update(notified: true);
-
-  /// Records a local retry.
+  void notify() => state = state.copyWith(notified: true);
   void retry() =>
-      _update(retryMessage: 'Local retry complete · cached results retained.');
+      state = state.copyWith(retryMessage: 'Local preview data retained.');
 
-  /// Reserves an eligible native slot in the preview; returns whether it changed.
   bool reserve(PitchVenue venue, PitchSlot slot) {
-    if (venue.source == VenueSource.external) return false;
-    final current = state.stateFor(slot);
+    if (state.selectedSlot != slot.id) {
+      return false;
+    }
+    final visibleVenue = state.venues
+        .where((item) => item.id == venue.id)
+        .firstOrNull;
+    if (visibleVenue == null || visibleVenue.source != VenueSource.native) {
+      return false;
+    }
+    final visibleSlot = visibleVenue.slots
+        .where((candidate) => candidate.id == slot.id)
+        .firstOrNull;
+    if (visibleSlot == null) return false;
+    final current = state.stateFor(visibleSlot);
     if (current != SlotState.available && current != SlotState.pending) {
       return false;
     }
-    _update(
-      selectedSlot: slot.id,
-      slotStates: {...state.slotStates, slot.id: SlotState.confirmed},
+    state = state.copyWith(
+      slotStates: {...state.slotStates, visibleSlot.id: SlotState.confirmed},
     );
     return true;
   }
@@ -134,5 +184,6 @@ class PitchesController extends StateNotifier<PitchesState> {
 /// Owns the screen-scoped pitch state.
 final pitchesControllerProvider =
     StateNotifierProvider.autoDispose<PitchesController, PitchesState>(
-      (ref) => PitchesController(LocalFixtures.load()),
+      (ref) =>
+          PitchesController(pitchPreviewFixtures(), initialSlot: 'slot-001'),
     );

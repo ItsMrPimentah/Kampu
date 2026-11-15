@@ -21,7 +21,7 @@ void main() {
     reset(storage);
   });
 
-  test('persists a valid login response before returning success', () async {
+  test('returns a login response from the API', () async {
     when(
       () => dio.post<Map<String, dynamic>>(
         '/auth/login',
@@ -33,37 +33,11 @@ void main() {
         data: {'token': 'token', 'verified': false, 'phone': 'test'},
       ),
     );
-    when(() => storage.write(key: 'showtime_session', value: 'token'))
-        .thenAnswer((_) async {});
-
     final result = await repository.login('name', 'password');
 
     expect(
       result.when(val: (data) => data['token'], err: (_) => null),
       'token',
-    );
-    verify(() => storage.write(key: 'showtime_session', value: 'token'))
-        .called(1);
-  });
-
-  test('rejects malformed login responses without storing the token', () async {
-    when(
-      () => dio.post<Map<String, dynamic>>(
-        '/auth/login',
-        data: any(named: 'data'),
-      ),
-    ).thenAnswer(
-      (_) async => Response(
-        requestOptions: RequestOptions(path: '/auth/login'),
-        data: {'token': 'token', 'verified': 'yes'},
-      ),
-    );
-
-    final result = await repository.login('name', 'password');
-
-    expect(
-      result.when(val: (_) => null, err: (error) => error),
-      AuthFailure.invalidResponse,
     );
     verifyNever(
       () => storage.write(
@@ -71,6 +45,15 @@ void main() {
         value: any(named: 'value'),
       ),
     );
+  });
+
+  test('persists the token through secure storage', () async {
+    when(() => storage.write(key: 'showtime_session', value: 'token'))
+        .thenAnswer((_) async {});
+    final result = await repository.saveToken('token');
+    expect(result.when(val: (_) => true, err: (_) => false), isTrue);
+    verify(() => storage.write(key: 'showtime_session', value: 'token'))
+        .called(1);
   });
 
   test('converts an unauthorized HTTP response to a failure', () async {

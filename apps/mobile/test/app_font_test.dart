@@ -15,6 +15,8 @@ void main() {
 
     expect(MidnightTheme.defaults.displayStyle.fontFamily, 'Inter');
     expect(MidnightTheme.defaults.labelStyle.fontFamily, 'Inter');
+    expect(MidnightTheme.defaults.bodyStyle.fontFamily, 'Inter');
+    expect(MidnightTheme.defaults.monoStyle.fontFamily, 'JetBrains Mono');
 
     await tester.runAsync(() => GoogleFonts.pendingFonts());
   });

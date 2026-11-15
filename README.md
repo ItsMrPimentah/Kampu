@@ -23,17 +23,48 @@ Install backend dependencies and run the API:
 
 ```sh
 npm install
-cp apps/api/.env.example apps/api/.env
+test -f apps/api/.env || cp apps/api/.env.example apps/api/.env
+npm --workspace apps/api run db:migrate
 npm run dev:api
 ```
 
-The API health check is available at `http://localhost:3000/health`.
+If `apps/api/.env` already exists, preserve it and check that `DATABASE_URL`
+matches the PostgreSQL instance you intend to use. For the Compose database, the
+default is `postgres://showtime:showtime@localhost:5432/showtime`. Environment
+variables exported in your shell take precedence over `.env`. Run the migration
+after PostgreSQL is accepting connections and before using login or registration.
+
+If login reports `ECONNREFUSED` on port 5432, ensure your Docker runtime is
+running, check `docker compose -f infra/docker-compose.yml ps`, and start the
+database with `docker compose -f infra/docker-compose.yml up -d postgres`. If
+the connection is accepted but authentication fails, check the database
+credentials in `DATABASE_URL`. Changing Compose credentials does not update an
+existing PostgreSQL volume.
+
+The API health check is available at `http://localhost:3000/health`; it does not
+check database connectivity. Login currently uses the API's own PostgreSQL-backed
+credentials and sessions. Better Auth is a dependency but is not integrated into
+this flow; `BETTER_AUTH_SECRET` is required by configuration validation but does
+not configure login. Registration requires Twilio Verify credentials for phone
+verification. See [`apps/mobile/README.md`](apps/mobile/README.md#login-and-sms-verification)
+and the [isolated demo setup](apps/api/README.md#local-demo-database).
+
+Every `npm run dev:api` seeds the Compose database with the local demo login
+`captain@showtimedemo.invalid` / `LocalDemo123!`, preserving an existing demo
+account on subsequent runs. Migrations must run first. This seed accepts only
+the default local Compose database and development environment; the API binds to
+`127.0.0.1`. For the complete demo fixture dataset, use the separate
+[isolated demo setup](apps/api/README.md#local-demo-database). Check for port conflicts with
+`lsof -nP -iTCP:3000 -sTCP:LISTEN`: on macOS, different IPv4 and IPv6
+listeners can make `localhost` and `127.0.0.1` reach different applications.
+Choose a free port with `PORT=3001 npm run dev:api` and set the mobile app's
+`API_BASE_URL` to `http://127.0.0.1:3001` for the iOS simulator.
+For Android, run `adb reverse tcp:3001 tcp:3001` and use the same URL.
 
 Run the scaffold verification:
 
 ```sh
 npm run verify
-npm --workspace apps/api run db:migrate
 ```
 
 Set up and run the mobile app through the pinned FVM SDK:

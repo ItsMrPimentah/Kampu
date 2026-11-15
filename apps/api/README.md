@@ -1,3 +1,34 @@
+# Showtime API
+
+## OpenAPI documentation
+
+Start the API with `npm run dev:api` from the repository root, or use the local
+demo below. Interactive documentation is available at `/docs`; the OpenAPI 3.0
+specification is available at `/openapi.json` and `/openapi.yaml` on the same
+host and port. Use the **Authorize** button with a session token returned by
+`POST /auth/login` or `POST /auth/register`. Community endpoints require a
+verified phone number. The specification covers the currently exposed HTTP
+controllers, not domain services that do not yet have routes.
+
+When changing a controller, update `src/openapi.ts` alongside it. The API tests
+check route coverage, validate the specification, and exercise the docs endpoint.
+
+The dev command uses the TypeScript compiler in watch mode so Nest receives
+constructor decorator metadata. It starts only after a successful initial build
+and restarts the API after successful changes; compilation errors are reported
+while the watcher waits for a fix. Development output is isolated in `dist/dev`.
+
+Each `npm run dev:api` first creates the local demo login
+`captain@showtimedemo.invalid` / `LocalDemo123!` in the default Compose
+database. Run migrations first. The seed runs transactionally, preserves an
+existing demo account, and stops startup on database or identity conflicts.
+It requires `NODE_ENV=development`, the default local Compose `DATABASE_URL`,
+and no `PG*` environment variables. `dev:api` binds to `127.0.0.1` because the
+demo password is public. This account does not include the full fixture dataset;
+the isolated demo below supplies that separately. For an Android emulator or
+USB-connected device, use `adb reverse tcp:3000 tcp:3000` and configure the app
+with `http://127.0.0.1:3000` (adjust both ports if needed).
+
 # Local demo database
 
 This is a disposable, synthetic dataset for the PostgreSQL-backed auth and
@@ -75,6 +106,9 @@ so login can use the normal scrypt password, session and authorization flow
 without sending SMS. Do not register this account or use these credentials in a
 real environment.
 
+The demo seed above writes to the dedicated `showtime_demo` database. Use the
+loopback-only demo API below with the same database URL used for the seed.
+
 From the repository root, start the dedicated demo API with an explicit exported
 `DATABASE_URL`. The command compiles the demo entrypoint and application with
 TypeScript before starting them. Unlike `npm run dev:api`, it binds only
@@ -95,6 +129,13 @@ env -i HOME="$HOME" PATH="$PATH" NODE_ENV=development SEED_LOCAL_DEMO=yes \
   STRIPE_MODE=test STRIPE_SECRET_KEY=sk_test_demo FEATURE_NATIVE_BOOKING=false FEATURE_PAYMENTS=false FEATURE_ADVERTISING=false \
   npm --workspace apps/api run start:demo
 ```
+
+If port 3000 is already occupied, choose a free port by adding `PORT=3001` to
+the command above and use `http://127.0.0.1:3001` as the mobile API URL. Check
+both IPv4 and IPv6 listeners with `lsof -nP -iTCP:3000 -sTCP:LISTEN`; separate
+applications can otherwise answer requests to `localhost` and `127.0.0.1`.
+Confirm the intended API with `curl http://127.0.0.1:3001/health` (adjust the
+port to match), which should report `"service":"showtime-api"`.
 
 Avoid putting live Twilio or provider credentials in `.env`. From `apps/mobile`, run
 `fvm flutter run --dart-define=API_BASE_URL=http://localhost:3000` for an iOS
@@ -130,6 +171,17 @@ the same command with `RUN_LOCAL_DEMO_COLLISION_TEST=yes` in place of
 `RUN_LOCAL_DEMO_INTEGRATION=yes`. That test deliberately leaves one conflicting
 user in its disposable database; it must not share the database with the login
 test.
+
+The dev HTTP regression test can also use the local Compose database. It launches
+`npm run dev:api` in an isolated copy, checks seeding, login and authenticated
+requests, and verifies watch reloads. Run migrations first:
+
+```sh
+env -i HOME="$HOME" PATH="$PATH" NODE_ENV=development RUN_DEV_SEED_HTTP_TEST=yes DATABASE_URL='postgres://showtime:showtime@127.0.0.1:5432/showtime' node --test --import tsx apps/api/test/dev-api-http.test.ts
+```
+
+Without that flag it replaces the seed in the isolated copy and checks metadata,
+unauthorized responses, startup failure recovery, and watch reloads without a database.
 
 For fresh dates or another integration run, stop the dedicated cluster with
 `pg_ctl -D "$HOME/showtime-demo-pg" stop`, then create a **new** empty cluster

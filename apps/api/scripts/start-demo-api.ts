@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { demoApiHost } from './demo-guard';
+import { setupOpenApi } from '../src/openapi';
 
 async function main(): Promise<void> {
   const host = demoApiHost(process.env);
@@ -13,6 +14,7 @@ async function main(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   app.enableShutdownHooks();
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+  setupOpenApi(app);
   await app.listen(Number(process.env.PORT ?? 3000), host);
 }
 

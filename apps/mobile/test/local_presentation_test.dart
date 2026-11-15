@@ -57,6 +57,5 @@ void main() {
     expect(tokens.iris.toARGB32(), 0xFF5B63D3);
     expect(tokens.periwinkle.toARGB32(), 0xFF7C87F7);
     expect(tokens.frost.toARGB32(), 0xFFC9D3EE);
-    expect(tokens.monoStyle.fontFamily, 'JetBrains Mono');
   });
 }

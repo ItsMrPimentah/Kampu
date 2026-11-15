@@ -40,6 +40,17 @@ test('demo API listens on loopback and does not expose its port on LAN interface
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     assert.ok(ready, `Demo API did not start: ${output}`);
+    const docs = await fetch(`http://127.0.0.1:${port}/docs`);
+    assert.equal(docs.status, 200);
+    assert.match(await docs.text(), /swagger-ui/i);
+    const spec = await fetch(`http://127.0.0.1:${port}/openapi.json`);
+    assert.equal(spec.status, 200);
+    const document = await spec.json() as { openapi: string; paths: Record<string, unknown> };
+    assert.equal(document.openapi, '3.0.3');
+    assert.ok(document.paths['/community/games']);
+    const yaml = await fetch(`http://127.0.0.1:${port}/openapi.yaml`);
+    assert.equal(yaml.status, 200);
+    assert.match(await yaml.text(), /openapi: 3\.0\.3/);
     // This route needs both injected CommunityService and AuthService. It must
     // reject a missing token without attempting a database connection.
     const unauthorized = await fetch(`http://127.0.0.1:${port}/community/teams`);
