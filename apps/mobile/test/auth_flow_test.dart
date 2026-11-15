@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:showtime_mobile/auth/auth_client.dart';
-import 'package:showtime_mobile/core/auth/auth_repository.dart';
+import 'package:showtime_mobile/app/auth/auth_client.dart';
+import 'package:showtime_mobile/app/auth/auth_repository.dart';
 import 'package:showtime_mobile/main.dart';
-import 'package:showtime_mobile/onboarding/eligibility.dart';
+import 'package:showtime_mobile/core/eligibility/eligibility.dart';
 import 'package:showtime_mobile/shared/external/utils/result.dart';
 
 class FakeAuth extends AuthClient {
@@ -59,6 +59,7 @@ void main() {
         find.byKey(const ValueKey('login-password')),
         'Password1!',
       );
+      await tester.ensureVisible(find.text('SIGN IN & PLAY'));
       await tester.tap(find.text('SIGN IN & PLAY'));
       await tester.pumpAndSettle();
       expect(find.text('VERIFY YOUR PHONE'), findsOneWidget);

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:showtime_mobile/theme/midnight_theme.dart';
-import 'package:showtime_mobile/theme/stitch_components.dart';
+import 'package:showtime_mobile/shared/ui/ui.dart';
 
 void main() {
   Widget host(Widget child) => MaterialApp(

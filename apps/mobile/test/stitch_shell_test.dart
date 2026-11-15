@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:showtime_mobile/navigation/app_router.dart';
-import 'package:showtime_mobile/onboarding/eligibility.dart';
-import 'package:showtime_mobile/theme/midnight_theme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:showtime_mobile/app/navigation/app_router.dart';
+import 'package:showtime_mobile/core/eligibility/eligibility.dart';
+import 'package:showtime_mobile/shared/ui/ui.dart';
 
 void main() {
   testWidgets('Stitch dock remains usable across supported mobile widths', (
@@ -20,9 +21,11 @@ void main() {
     for (final width in [360.0, 390.0, 430.0]) {
       await tester.binding.setSurfaceSize(Size(width, 800));
       await tester.pumpWidget(
-        MaterialApp.router(
-          theme: MidnightThemeData.apply(),
-          routerConfig: router,
+        ProviderScope(
+          child: MaterialApp.router(
+            theme: MidnightThemeData.apply(),
+            routerConfig: router,
+          ),
         ),
       );
       router.go('/home');
@@ -51,9 +54,11 @@ void main() {
 
     await tester.binding.setSurfaceSize(const Size(390, 844));
     await tester.pumpWidget(
-      MaterialApp.router(
-        theme: MidnightThemeData.apply(),
-        routerConfig: router,
+      ProviderScope(
+        child: MaterialApp.router(
+          theme: MidnightThemeData.apply(),
+          routerConfig: router,
+        ),
       ),
     );
     router.go('/home');
@@ -76,9 +81,11 @@ void main() {
       eligibility.dispose();
     });
     await tester.pumpWidget(
-      MaterialApp.router(
-        theme: MidnightThemeData.apply(),
-        routerConfig: router,
+      ProviderScope(
+        child: MaterialApp.router(
+          theme: MidnightThemeData.apply(),
+          routerConfig: router,
+        ),
       ),
     );
     router.go('/home');

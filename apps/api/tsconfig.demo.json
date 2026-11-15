@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": { "rootDir": ".", "outDir": "dist/demo", "noEmitOnError": true },
+  "include": ["src/**/*.ts", "scripts/start-demo-api.ts", "scripts/demo-guard.ts"]
+}

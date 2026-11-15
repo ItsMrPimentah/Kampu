@@ -2,11 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:showtime_mobile/auth/auth_client.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:showtime_mobile/app/auth/auth_client.dart';
 import 'package:showtime_mobile/main.dart';
-import 'package:showtime_mobile/onboarding/eligibility.dart';
-import 'package:showtime_mobile/registration/registration_models.dart';
-import 'package:showtime_mobile/registration/registration_screen.dart';
+import 'package:showtime_mobile/core/eligibility/eligibility.dart';
+import 'package:showtime_mobile/core/registration/registration_models.dart';
+import 'package:showtime_mobile/screens/registration/registration_screen.dart';
 
 class TestAuth extends AuthClient {
   @override
@@ -23,10 +24,12 @@ void main() {
     VoidCallback? onLogin,
   }) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: RegisterScreen(
-          onContinue: onContinue ?? (_) async {},
-          onLogin: onLogin,
+      ProviderScope(
+        child: MaterialApp(
+          home: RegisterScreen(
+            onContinue: onContinue ?? (_) async {},
+            onLogin: onLogin,
+          ),
         ),
       ),
     );

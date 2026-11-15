@@ -1,26 +1,36 @@
+/// Supported account age categories.
 enum EligibilityCategory { youth, adult }
 
+/// The account category and age determined from a valid date of birth.
 class EligibilityDecision {
+  /// Creates an eligibility decision.
   const EligibilityDecision({required this.category, required this.age});
 
+  /// The resulting account category.
   final EligibilityCategory category;
+
+  /// Age in completed years.
   final int age;
 }
 
+/// Indicates that a date of birth does not satisfy the account policy.
 class EligibilityValidationException implements Exception {
+  /// Creates an error with a user-visible explanation.
   const EligibilityValidationException(this.message);
 
+  /// Explanation of the invalid date.
   final String message;
 }
 
+/// Evaluates the minimum-age policy against [input] in `YYYY-MM-DD` format.
 EligibilityDecision evaluateEligibility(String input, {DateTime? today}) {
   final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(input);
   if (match == null) {
     throw const EligibilityValidationException('Use date format YYYY-MM-DD.');
   }
-  final year = int.parse(match.group(1)!);
-  final month = int.parse(match.group(2)!);
-  final day = int.parse(match.group(3)!);
+  final year = int.parse(input.substring(0, 4));
+  final month = int.parse(input.substring(5, 7));
+  final day = int.parse(input.substring(8, 10));
   final dob = DateTime.utc(year, month, day);
   if (dob.year != year || dob.month != month || dob.day != day) {
     throw const EligibilityValidationException('Enter a valid calendar date.');

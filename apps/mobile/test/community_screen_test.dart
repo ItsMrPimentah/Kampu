@@ -1,62 +1,95 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:showtime_mobile/auth/auth_client.dart';
-import 'package:showtime_mobile/community/community_screen.dart';
-import 'package:showtime_mobile/theme/midnight_theme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:showtime_mobile/screens/community/community_screen.dart';
+import 'package:showtime_mobile/app/auth/auth_client.dart';
+import 'package:showtime_mobile/app/navigation/app_router.dart';
+import 'package:showtime_mobile/core/eligibility/eligibility.dart';
+import 'package:showtime_mobile/shared/ui/ui.dart';
 
-class CommunityFake extends AuthClient {
-  final List<String> calls = [];
-  String status = 'pending';
-  @override
-  Future<List<dynamic>> communityList(String path) async {
-    calls.add('GET $path');
-    if (path == 'games') return [game];
-    if (path == 'games/game-1/applications') {
-      return [
-        {'id': 'a1', 'display_name': 'First', 'status': 'waitlisted'},
-        {'id': 'a2', 'display_name': 'Second', 'status': status},
-      ];
-    }
-    return [];
+import 'mocks/community_fake.dart';
+
+class _VerifiedAuth extends AuthClient {
+  _VerifiedAuth() {
+    initialized = true;
+    verified = true;
   }
 
-  Map<String, dynamic> get game => {
-    'id': 'game-1',
-    'title': 'Friday Football',
-    'format': '7v7',
-    'region': 'Lisbon',
-    'location': 'Pitch',
-    'scheduled_at': '2030-01-01T18:00:00Z',
-    'approved_count': 0,
-    'capacity': 14,
-    'approval_required': true,
-    'my_status': null,
-    'is_organizer': true,
-    'required_positions': [],
-    'status': 'open',
-  };
   @override
-  Future<Map<String, dynamic>> communityGet(String path) async => game;
-  @override
-  Future<Map<String, dynamic>> communityPost(
-    String path, [
-    Map<String, dynamic> body = const {},
-  ]) async {
-    calls.add('POST $path');
-    if (path.endsWith('/a2/approve')) status = 'approved';
-    return {};
-  }
+  bool get hasSession => true;
 }
 
+GoRouter _router(CommunityFake repository) => GoRouter(
+  initialLocation: '/games',
+  routes: [
+    GoRoute(
+      path: '/games',
+      builder: (_, _) =>
+          CommunityScreen(repository: repository, section: 'games'),
+    ),
+    GoRoute(
+      path: '/community/:section/:itemId',
+      builder: (_, state) => CommunityDetailScreen(
+        repository: repository,
+        section: state.pathParameters['section'] ?? '',
+        itemId: state.pathParameters['itemId'] ?? '',
+      ),
+    ),
+  ],
+);
+
 void main() {
-  testWidgets('organizer can select any waiting player from the ordered list', (
+  testWidgets(
+    'authenticated community pages support deep links and guarded routes',
+    (tester) async {
+      final repository = CommunityFake();
+      final auth = _VerifiedAuth();
+      final eligibility = ValueNotifier<EligibilityDecision?>(null);
+      final router = createShowtimeRouter(
+        eligibility: eligibility,
+        auth: auth,
+        community: repository,
+      );
+      addTearDown(() {
+        router.dispose();
+        eligibility.dispose();
+        auth.dispose();
+      });
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp.router(
+            theme: MidnightThemeData.apply(),
+            routerConfig: router,
+          ),
+        ),
+      );
+      router.go('/community/games/game-1');
+      await tester.pumpAndSettle();
+      expect(find.text('Friday Football'), findsOneWidget);
+      expect(find.text('Second · pending'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+      expect(find.text('Find your next game'), findsOneWidget);
+
+      router.go('/community/invalid/game-1');
+      await tester.pumpAndSettle();
+      expect(find.text('Page not found'), findsOneWidget);
+    },
+  );
+  testWidgets('organizer can approve a selected waiting player', (
     tester,
   ) async {
-    final auth = CommunityFake();
+    final repository = CommunityFake();
+    final router = _router(repository);
+    addTearDown(router.dispose);
     await tester.pumpWidget(
-      MaterialApp(
-        theme: MidnightThemeData.apply(),
-        home: CommunityScreen(auth: auth, section: 'games'),
+      ProviderScope(
+        child: MaterialApp.router(
+          theme: MidnightThemeData.apply(),
+          routerConfig: router,
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -74,7 +107,84 @@ void main() {
       find.descendant(of: secondCard, matching: find.text('Approve')),
     );
     await tester.pumpAndSettle();
-    expect(auth.calls, contains('POST games/game-1/applications/a2/approve'));
+    expect(
+      repository.calls,
+      contains('POST games/game-1/applications/a2/approve'),
+    );
     expect(find.text('Second · approved'), findsOneWidget);
+  });
+
+  testWidgets('failed community load shows retry and recovers', (tester) async {
+    final repository = CommunityFake()..failList = true;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: MidnightThemeData.apply(),
+          home: CommunityScreen(repository: repository, section: 'games'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Unable to load. Check your connection.'), findsOneWidget);
+    repository.failList = false;
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+    expect(find.text('Friday Football'), findsOneWidget);
+  });
+
+  testWidgets('eligible captain can join an open challenge', (tester) async {
+    final repository = CommunityFake();
+    final router = _router(repository);
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp.router(
+          theme: MidnightThemeData.apply(),
+          routerConfig: router,
+        ),
+      ),
+    );
+    router.go('/community/challenges/challenge-1');
+    await tester.pumpAndSettle();
+    expect(find.text('CHALLENGE TEAM'), findsOneWidget);
+    await tester.tap(find.text('CHALLENGE TEAM'));
+    await tester.pumpAndSettle();
+    expect(repository.calls, contains('POST challenges/challenge-1/join'));
+  });
+
+  testWidgets('failed approval reports an error without changing status', (
+    tester,
+  ) async {
+    final repository = CommunityFake()..failPost = true;
+    final router = _router(repository);
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp.router(
+          theme: MidnightThemeData.apply(),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Friday Football'));
+    await tester.pumpAndSettle();
+    final secondCard = find
+        .ancestor(
+          of: find.text('Second · pending'),
+          matching: find.byType(Column),
+        )
+        .first;
+    await tester.tap(
+      find.descendant(of: secondCard, matching: find.text('Approve')),
+    );
+    await tester.pump();
+    expect(
+      find.text(
+        'Unable to complete this action. Please check the current status.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Second · pending'), findsOneWidget);
   });
 }

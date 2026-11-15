@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:showtime_mobile/teams/team_hub_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:showtime_mobile/screens/teams/team_hub_screen.dart';
 
 void main() {
   testWidgets(
     'creates a team and shows roster readiness and invitation state',
     (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: TeamHubScreen()));
+      await tester.pumpWidget(
+        const ProviderScope(child: MaterialApp(home: TeamHubScreen())),
+      );
       await tester.enterText(
         find.byKey(const ValueKey('team-name')),
         'Lisbon Lions',

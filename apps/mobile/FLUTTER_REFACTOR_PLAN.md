@@ -19,14 +19,25 @@ screen-specific styling. Each slice must include focused tests and pass the proj
 ## Migration status
 
 - Devbox workflows, pinned Flutter 3.47.9, CI, guidelines, and project skill instructions are in place.
-- Authentication HTTP/secure storage are separated into `core/auth/auth_repository.dart`, with
+- Authentication HTTP/secure storage are separated into `app/auth/auth_repository.dart`, with
   explicit Result handling and focused restoration, login, and failure tests. The client is owned by
-  a Riverpod provider. Shared visual tokens/components and Result are in `lib/shared`, with legacy
-  exports for existing imports; the app theme is configured in `lib/app/theme.dart`.
-- The analyze workflow checks import direction for migrated `core` and `shared` code.
-- Remaining: `AuthClient` still provides community HTTP calls, authentication state remains a
-  ChangeNotifier rather than a Riverpod notifier, and the router and screens still use legacy paths.
-  `community_screen.dart` still combines multiple features, direct page navigation, and broad catches.
-  Migrate these in independently tested slices before enforcing import direction across all code.
+  a Riverpod provider. Shared visual tokens/components and Result are in `lib/shared`; the app theme
+  is configured in `lib/app/theme.dart`.
+- Community HTTP calls now use an injected repository with explicit failures and a session token
+  supplied at request time. Community screens live in `screens/community`, use GoRouter for page
+  navigation, and have success, failure, retry and deep-link tests. List rendering is lazy.
+- The analyze workflow checks import direction for migrated `screens`, `core`, and `shared` code.
+- Login, phone verification, onboarding, local discovery, pitches, challenges, squad, teams,
+  matches, venues, payments, and safety have screen-scoped Riverpod controllers in `screens/`.
+  Their widget-local text and visibility state uses Flutter Hooks. Shared preview data is in
+  `core/discovery`, and app-wide authentication and routing are in `app/`.
+- Legacy top-level feature re-exports have been removed, and the analyzer workflow rejects Dart
+  source directories outside `app`, `screens`, `core`, and `shared`.
+- Registration and the four authenticated community screens now have screen-scoped Riverpod
+  controllers and use Hooks for local form controls. The app session is exposed through a Riverpod
+  notifier, which drives the production router and session actions.
+- Remaining: the session notifier adapts a legacy ChangeNotifier client; replace that client with
+  notifier-owned session state. The community presentation still combines multiple features and
+  dynamic response maps in one file. Split feature widgets and adopt typed models.
 - Drift is not currently needed by an existing local relational-data use case. Existing visual
   authority is described in DESIGN.md.

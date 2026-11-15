@@ -124,7 +124,6 @@ class StitchStatusPill extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: color,
-                fontFamily: 'Space Grotesk',
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.5,

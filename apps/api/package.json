@@ -5,10 +5,12 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start:dev": "tsx watch src/main.ts",
+    "start:demo": "tsc -p tsconfig.demo.json && node dist/demo/scripts/start-demo-api.js",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
+    "db:seed:demo": "tsx scripts/seed-demo.ts",
     "test": "node --test --import tsx \"test/**/*.test.ts\""
   },
   "dependencies": {

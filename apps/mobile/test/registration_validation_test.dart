@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:showtime_mobile/onboarding/eligibility.dart';
-import 'package:showtime_mobile/registration/registration_models.dart';
-import 'package:showtime_mobile/registration/registration_validation.dart';
+import 'package:showtime_mobile/core/eligibility/eligibility.dart';
+import 'package:showtime_mobile/core/registration/registration_models.dart';
+import 'package:showtime_mobile/core/registration/registration_validation.dart';
 
 void main() {
   final today = DateTime.utc(2026, 11, 2);

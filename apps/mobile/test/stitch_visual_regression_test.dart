@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:showtime_mobile/navigation/app_router.dart';
-import 'package:showtime_mobile/onboarding/eligibility.dart';
-import 'package:showtime_mobile/theme/midnight_theme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:showtime_mobile/app/navigation/app_router.dart';
+import 'package:showtime_mobile/core/eligibility/eligibility.dart';
+import 'package:showtime_mobile/shared/ui/ui.dart';
 
 void main() {
   testWidgets(
@@ -20,9 +21,11 @@ void main() {
       for (final width in [360.0, 390.0, 430.0]) {
         await tester.binding.setSurfaceSize(Size(width, 844));
         await tester.pumpWidget(
-          MaterialApp.router(
-            theme: MidnightThemeData.apply(),
-            routerConfig: router,
+          ProviderScope(
+            child: MaterialApp.router(
+              theme: MidnightThemeData.apply(),
+              routerConfig: router,
+            ),
           ),
         );
         for (final location in [

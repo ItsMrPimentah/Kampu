@@ -31,7 +31,7 @@ That preview consumes a deterministic local presentation snapshot: refresh, join
 
 ## Local resource policy
 
-Supported mobile screens must render without runtime Google Fonts, Material Symbols web-fonts, hosted images, or other remote presentation URLs. Use `StitchAssets` for local resource paths, Flutter Material icon glyphs, bundled placeholder imagery, and stable error fallbacks. Inter, Space Grotesk, and JetBrains Mono are declared as semantic font roles with platform-safe fallbacks until approved font files are packaged.
+Supported mobile screens must render without runtime font downloads, Material Symbols web-fonts, hosted images, or other remote presentation URLs. Use `StitchAssets` for local resource paths, Flutter Material icon glyphs, bundled placeholder imagery, and stable error fallbacks. Inter is bundled with its license and configured through `google_fonts`; JetBrains Mono retains its platform-safe fallback.
 
 ## Visual review workflow
 
@@ -46,6 +46,6 @@ Supported mobile screens must render without runtime Google Fonts, Material Symb
 - Persist native reservation and negotiation decisions before presenting them as provider-confirmed or durable.
 - Connect external venue actions to provider deep links and live availability refreshes.
 - Replace bundled placeholder imagery with approved local venue/team imagery.
-- Add licensed local font files if product licensing supplies them; do not reintroduce network font loading.
+- Add a licensed local JetBrains Mono font if needed; do not reintroduce network font loading.
 
 The GoRouter graph, Midnight shell, and local state boundaries preserve these integration points without changing backend or domain contracts.

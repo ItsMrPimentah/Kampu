@@ -1,7 +1,9 @@
 {
   "name": "showtime-football-community",
   "private": true,
-  "workspaces": ["apps/api"],
+  "workspaces": [
+    "apps/api"
+  ],
   "scripts": {
     "dev:api": "npm --workspace apps/api run start:dev",
     "build:api": "npm --workspace apps/api run build",
@@ -13,5 +15,8 @@
     "flutter:test": "cd apps/mobile && fvm flutter test",
     "flutter:analyze": "cd apps/mobile && fvm flutter analyze",
     "test:security": "npm --workspace apps/api run test -- --test-name-pattern='authorization|idempot|privacy|audit|policy'"
+  },
+  "dependencies": {
+    "@better-auth/infra": "^0.4.30"
   }
 }

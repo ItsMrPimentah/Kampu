@@ -9,7 +9,7 @@ class StitchAssets {
   static const showtimeMark = 'assets/icons/showtime-mark.svg';
 
   static const bodyFont = 'Inter';
-  static const displayFont = 'Space Grotesk';
+  static const displayFont = 'Inter';
   static const dataFont = 'JetBrains Mono';
 
   static const discoverIcon = Icons.explore_outlined;

@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:showtime_mobile/core/auth/auth_repository.dart';
+import 'package:showtime_mobile/app/auth/auth_repository.dart';
 
 import 'mocks/auth_mocks.dart';
 
@@ -105,5 +105,24 @@ void main() {
       result.when(val: (_) => null, err: (error) => error),
       AuthFailure.unavailable,
     );
+  });
+
+  test('verification accepts the JSON object returned by the API', () async {
+    final client = Dio(BaseOptions(baseUrl: 'https://example.test'));
+    client.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          handler.resolve(
+            Response(requestOptions: options, data: {'verified': true}),
+          );
+        },
+      ),
+    );
+    final realRepository = AuthRepository(dio: client, storage: storage);
+
+    final result = await realRepository.verify('token', '123456');
+
+    expect(result.when(val: (_) => true, err: (_) => false), isTrue);
+    client.close();
   });
 }

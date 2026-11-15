@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:showtime_mobile/matches/match_hub_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:showtime_mobile/screens/matches/match_hub_screen.dart';
 
 void main() {
   testWidgets(
     'covers challenge publication, Fusion, attendance, and completion',
     (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: MatchHubScreen()));
+      await tester.pumpWidget(
+        const ProviderScope(child: MaterialApp(home: MatchHubScreen())),
+      );
       await tester.tap(find.text('Publish challenge'));
       await tester.pump();
       expect(find.text('Status: Open'), findsOneWidget);

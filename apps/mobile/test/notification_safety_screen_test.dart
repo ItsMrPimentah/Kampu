@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:showtime_mobile/safety/notification_safety_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:showtime_mobile/screens/safety/notification_safety_screen.dart';
+import 'package:showtime_mobile/core/safety/in_app_notification.dart';
 
 void main() {
   testWidgets('renders safe notifications and youth advertising protection', (
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: NotificationSafetyScreen(
-          isYouth: true,
-          notifications: [
-            InAppNotification(
-              title: 'Booking failed',
-              body: 'Choose another slot or declare an external booking.',
-            ),
-          ],
+      const ProviderScope(
+        child: MaterialApp(
+          home: NotificationSafetyScreen(
+            isYouth: true,
+            notifications: [
+              InAppNotification(
+                title: 'Booking failed',
+                body: 'Choose another slot or declare an external booking.',
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -37,14 +41,16 @@ void main() {
     var blocks = 0;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: NotificationSafetyScreen(
-          isYouth: false,
-          notifications: const [],
-          onAdvertisingConsentChanged: (value) => advertisingConsent = value,
-          onAnalyticsConsentChanged: (value) => analyticsConsent = value,
-          onReport: () => reports++,
-          onBlock: () => blocks++,
+      ProviderScope(
+        child: MaterialApp(
+          home: NotificationSafetyScreen(
+            isYouth: false,
+            notifications: const [],
+            onAdvertisingConsentChanged: (value) => advertisingConsent = value,
+            onAnalyticsConsentChanged: (value) => analyticsConsent = value,
+            onReport: () => reports++,
+            onBlock: () => blocks++,
+          ),
         ),
       ),
     );

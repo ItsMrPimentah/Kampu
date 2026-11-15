@@ -4,11 +4,15 @@ import 'package:go_router/go_router.dart';
 
 import 'app/auth_provider.dart';
 import 'app/theme.dart';
-import 'core/auth/auth_client.dart';
-import 'navigation/app_router.dart';
-import 'onboarding/eligibility.dart';
+import 'app/auth/auth_client.dart';
+import 'app/navigation/app_router.dart';
+import 'core/eligibility/eligibility.dart';
+import 'shared/config/app_environment.dart';
 
-void main() => runApp(const ShowtimeApp());
+void main() {
+  const AppEnvironment.fromBuild().logConfiguration(debugPrint);
+  runApp(const ShowtimeApp());
+}
 
 class ShowtimeApp extends StatelessWidget {
   const ShowtimeApp({super.key, this.auth});
@@ -40,19 +44,35 @@ class _ShowtimeApplicationState extends ConsumerState<_ShowtimeApplication> {
   late final ValueNotifier<EligibilityDecision?> _eligibility;
   late final GoRouter _router;
   late final AuthClient _auth;
+  late final ValueNotifier<int> _sessionChanges;
+  late final void Function() _stopSessionListener;
 
   @override
   void initState() {
     super.initState();
     _eligibility = ValueNotifier<EligibilityDecision?>(null);
     _auth = ref.read(authClientProvider);
-    _router = createShowtimeRouter(eligibility: _eligibility, auth: _auth);
-    _auth.restore();
+    final session = ref.read(authSessionProvider.notifier);
+    _sessionChanges = ValueNotifier(0);
+    _stopSessionListener = session.addListener(
+      (_) => _sessionChanges.value++,
+      fireImmediately: false,
+    );
+    _router = createShowtimeRouter(
+      eligibility: _eligibility,
+      auth: _auth,
+      session: session,
+      sessionChanges: _sessionChanges,
+      community: ref.read(communityRepositoryProvider),
+    );
+    Future.microtask(session.restore);
   }
 
   @override
   void dispose() {
     _router.dispose();
+    _stopSessionListener();
+    _sessionChanges.dispose();
     _eligibility.dispose();
     super.dispose();
   }

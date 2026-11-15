@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:showtime_mobile/navigation/app_router.dart';
-import 'package:showtime_mobile/onboarding/eligibility.dart';
-import 'package:showtime_mobile/theme/midnight_theme.dart';
+import 'package:showtime_mobile/app/navigation/app_router.dart';
+import 'package:showtime_mobile/core/eligibility/eligibility.dart';
+import 'package:showtime_mobile/shared/ui/ui.dart';
 
 void main() {
   late ValueNotifier<EligibilityDecision?> eligibility;
@@ -21,9 +22,11 @@ void main() {
 
   Future<void> pumpApp(WidgetTester tester) async {
     await tester.pumpWidget(
-      MaterialApp.router(
-        theme: MidnightThemeData.apply(),
-        routerConfig: router,
+      ProviderScope(
+        child: MaterialApp.router(
+          theme: MidnightThemeData.apply(),
+          routerConfig: router,
+        ),
       ),
     );
     await tester.pump();

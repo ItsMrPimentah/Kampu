@@ -6,12 +6,23 @@ changed code should follow them without breaking existing flows. See the
 
 ## Architecture and style
 
-Organize code as `lib/app` (initialization, navigation, theme and localization), `lib/screens`
-(presentation), `lib/core` (feature logic and services), and `lib/shared` (feature-independent UI,
-logic and services). Dependencies run only `app → screens → core → shared`, including direct
+Organize code as `lib/app` (initialization, app-wide authentication/session, navigation, theme and
+localization), `lib/screens` (screen composition, screen controllers and presentation state),
+`lib/core/<feature>` (feature-specific domain logic, use cases, models and repositories), and
+`lib/shared` (feature-independent UI, logic and services). Do not create isolated feature folders
+directly under `lib`. Authentication is app-wide: keep its session and data access under
+`lib/app/auth`; its screens and screen controllers belong under `lib/screens/auth`.
+Dependencies run only `app → screens → core → shared`, including direct
 dependencies on any layer to the right. Shared code must not import feature code. Prefer focused,
 composed classes and constructor-injected dependencies. Keep builds pure and inexpensive, split
 large widgets, and use lazy lists for long collections.
+
+Each screen owns a dedicated Riverpod notifier controller and an explicit screen state. Controllers
+coordinate validation, loading, errors, feature actions and business decisions through injected
+repositories or use cases; do not put those responsibilities in widgets. Providers compose and
+inject dependencies; controllers and repositories do not read global providers themselves. Use
+autoDispose for screen-scoped controllers and prevent async completion from updating disposed state.
+Screen controllers reside next to their screen; reusable feature business rules remain in `core`.
 
 Use Effective Dart, snake_case files, PascalCase types, camelCase members, private names beginning
 with `_`, and lines no longer than 100 characters. Keep functions focused, document public APIs,
@@ -25,6 +36,55 @@ AsyncNotifier or StateNotifier providers for controlled state; FutureProvider or
 simple async values; autoDispose for transient state. Use watch for rebuilds, read for callbacks,
 listen for reactions, and refresh for refreshes. Inject non-widget dependencies instead of reading
 global providers inside repositories and controllers.
+
+### Screen and controller state
+
+Define every screen/controller state object with `@freezed` as an immutable state type, alongside
+its screen and controller. For a simple state with one shape, use a single const factory constructor
+with the necessary fields:
+
+```dart
+@freezed
+class ProfileState with _$ProfileState {
+  const factory ProfileState({
+    required String firstName,
+    required String lastName,
+    required String email,
+  }) = _ProfileState;
+}
+```
+
+For more complex state with mutually exclusive variants, use a sealed Freezed union with named const
+factory constructors. Give each variant all parameters required for that state and handle variants
+exhaustively. For example:
+
+```dart
+@freezed
+sealed class ProfileState with _$ProfileState {
+  const factory ProfileState.loading() = ProfileLoading;
+
+  const factory ProfileState.loaded({
+    required String firstName,
+    required String lastName,
+    required String email,
+  }) = ProfileLoaded;
+
+  const factory ProfileState.error({required String message}) = ProfileError;
+}
+```
+
+Import `freezed_annotation` and declare the generated `.freezed.dart` part in the state source file.
+Only add `fromJson`, a `.g.dart` part, and JSON generation when the state actually needs
+serialization. After changing Freezed declarations, load `regenerate-dart-sources` and generate the
+outputs rather than editing them manually. Apply this requirement to new and changed screen state
+as the existing code is migrated.
+
+Use `flutter_hooks` for ephemeral widget-only state and lifecycle, such as text controllers, focus,
+password visibility and animation. Use `HookConsumerWidget` when a screen also watches a controller.
+Do not duplicate controller-owned loading, validation, errors or business state in hooks. Dispose
+hook-owned resources automatically, and keep navigation, dialogs and other presentation effects in
+the UI. Every screen must have a controller even when it currently has little behavior; a shared
+controller is appropriate only for deliberately shared state in addition to screen controllers.
 
 Use GoRouter for page navigation and handle missing path parameters safely. Dialog and sheet routes
 can use Flutter's Navigator. Return `Result<Val, Err>` for expected API, database and other failable

@@ -16,6 +16,9 @@
 # Flutter implementation
 
 For all work under `apps/mobile`, follow [Flutter implementation guidelines](apps/mobile/FLUTTER_GUIDELINES.md).
+Keep app-wide authentication under `lib/app/auth`, feature domain code under `lib/core/<feature>`,
+and screen presentation plus its Riverpod notifier controller under `lib/screens/<feature>`.
+Use Flutter Hooks for ephemeral widget-local UI state. Do not add feature folders directly under `lib`.
 For UI work also consult [DESIGN.md](apps/mobile/DESIGN.md),
 [IMPLEMENTATION_NOTES.md](apps/mobile/IMPLEMENTATION_NOTES.md), and the applicable Stitch screen.
 The project-level Pitch Pulse tokens and existing Midnight screens have distinct visual sources;

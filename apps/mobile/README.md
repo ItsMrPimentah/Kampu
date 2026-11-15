@@ -14,11 +14,17 @@ Registration enforces the product's 13+ minimum age on the client and server. An
 
 The API uses PostgreSQL for accounts and sessions and Twilio Verify for SMS verification. Copy `apps/api/.env.example` to `apps/api/.env`, fill in `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_VERIFY_SERVICE_SID`, start PostgreSQL, and run `npm --workspace apps/api run db:migrate`. Create a Twilio Verify service configured for six-digit SMS codes. Twilio trial accounts can only send to verified recipient numbers.
 
-Run the API and pass its reachable address to Flutter using `--dart-define=API_BASE_URL=...`. For example:
+The mobile app loads build-time environment variables from Flutter dart defines. `API_BASE_URL`
+defaults to `http://localhost:3000`; override it with the API's reachable address:
 
 ```sh
 fvm flutter run --dart-define=API_BASE_URL=http://localhost:3000
 ```
+
+Alternatively, supply a local JSON or `.env` file with `--dart-define-from-file=path/to/file`.
+Restart the app after changing a define. In debug mode, startup logs indicate whether
+`API_BASE_URL` came from a dart define or the default, without printing its value. Dart defines
+are embedded in the app, so keep credentials and other secrets on the server.
 
 `localhost` works for the iOS simulator; Android emulators typically use `http://10.0.2.2:3000`, while physical devices need the development machine's reachable address. Use HTTPS for deployed services. Session tokens are stored in platform secure storage. If SMS delivery fails after account creation, sign in with the same credentials and request another SMS on the verification screen.
 

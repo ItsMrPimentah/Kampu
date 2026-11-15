@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:showtime_mobile/auth/auth_client.dart';
+import 'package:showtime_mobile/app/auth/auth_client.dart';
 import 'package:showtime_mobile/main.dart';
 
 class TestAuth extends AuthClient {

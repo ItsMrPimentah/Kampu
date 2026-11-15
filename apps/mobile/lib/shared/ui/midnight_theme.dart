@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Shared visual tokens for the Google Stitch Midnight mobile experience.
 @immutable
@@ -24,6 +25,7 @@ class MidnightTheme extends ThemeExtension<MidnightTheme> {
     required this.cardRadius,
     required this.controlHeight,
     required this.pageMargin,
+    this.gaps = const MidnightAppGaps._(),
   });
 
   static const defaults = MidnightTheme(
@@ -69,6 +71,7 @@ class MidnightTheme extends ThemeExtension<MidnightTheme> {
   final double cardRadius;
   final double controlHeight;
   final double pageMargin;
+  final MidnightAppGaps gaps;
 
   LinearGradient get ctaGradient => LinearGradient(
     begin: Alignment.bottomLeft,
@@ -100,8 +103,8 @@ class MidnightTheme extends ThemeExtension<MidnightTheme> {
   );
 
   TextStyle get displayStyle => TextStyle(
-    fontFamily: 'Space Grotesk',
-    fontFamilyFallback: const ['Inter', 'sans-serif'],
+    fontFamily: 'Inter',
+    fontFamilyFallback: const ['sans-serif'],
     fontSize: 28,
     height: 36 / 28,
     fontWeight: FontWeight.w700,
@@ -110,8 +113,8 @@ class MidnightTheme extends ThemeExtension<MidnightTheme> {
   );
 
   TextStyle get labelStyle => TextStyle(
-    fontFamily: 'Space Grotesk',
-    fontFamilyFallback: const ['Inter', 'sans-serif'],
+    fontFamily: 'Inter',
+    fontFamilyFallback: const ['sans-serif'],
     fontSize: 11,
     height: 14 / 11,
     fontWeight: FontWeight.w700,
@@ -209,12 +212,23 @@ class MidnightTheme extends ThemeExtension<MidnightTheme> {
   }
 }
 
+class MidnightAppGaps {
+  const MidnightAppGaps._();
+
+  final double extraSmall = 4;
+  final double small = 8;
+  final double medium = 16;
+  final double large = 24;
+  final double extraLarge = 32;
+}
+
 class MidnightThemeData {
   const MidnightThemeData._();
 
   static ThemeData apply([ThemeData? base]) {
+    GoogleFonts.config.allowRuntimeFetching = false;
     final tokens = MidnightTheme.defaults;
-    final source = base ?? ThemeData.dark(useMaterial3: true);
+    final source = base ?? ThemeData.dark(useMaterial3: false);
     final scheme = source.colorScheme.copyWith(
       brightness: Brightness.dark,
       primary: tokens.periwinkle,
@@ -225,28 +239,31 @@ class MidnightThemeData {
       outline: tokens.borderSubtle,
       error: tokens.danger,
     );
-    final textTheme = source.textTheme
-        .apply(
-          bodyColor: tokens.textSecondary,
-          displayColor: tokens.textPrimary,
-          fontFamily: 'Inter',
-          fontFamilyFallback: const ['Inter', 'sans-serif'],
-        )
-        .copyWith(
-          displayLarge: tokens.displayStyle.copyWith(
-            fontSize: 36,
-            height: 44 / 36,
+    final textTheme = GoogleFonts.interTextTheme(
+      source.textTheme
+          .apply(
+            bodyColor: tokens.textSecondary,
+            displayColor: tokens.textPrimary,
+          )
+          .copyWith(
+            displayLarge: tokens.displayStyle.copyWith(
+              fontSize: 36,
+              height: 44 / 36,
+            ),
+            headlineLarge: tokens.displayStyle.copyWith(
+              fontSize: 24,
+              height: 32 / 24,
+            ),
+            headlineSmall: tokens.displayStyle.copyWith(
+              fontSize: 18,
+              height: 24 / 18,
+            ),
+            labelLarge: tokens.labelStyle.copyWith(
+              fontSize: 13,
+              height: 16 / 13,
+            ),
           ),
-          headlineLarge: tokens.displayStyle.copyWith(
-            fontSize: 24,
-            height: 32 / 24,
-          ),
-          headlineSmall: tokens.displayStyle.copyWith(
-            fontSize: 18,
-            height: 24 / 18,
-          ),
-          labelLarge: tokens.labelStyle.copyWith(fontSize: 13, height: 16 / 13),
-        );
+    );
     return source.copyWith(
       brightness: Brightness.dark,
       scaffoldBackgroundColor: tokens.voidColor,

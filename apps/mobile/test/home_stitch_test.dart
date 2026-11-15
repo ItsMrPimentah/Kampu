@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:showtime_mobile/discovery/home_screen.dart';
-import 'package:showtime_mobile/navigation/app_router.dart';
-import 'package:showtime_mobile/onboarding/eligibility.dart';
-import 'package:showtime_mobile/theme/midnight_theme.dart';
-import 'package:showtime_mobile/theme/stitch_components.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:showtime_mobile/screens/discovery/home_screen.dart';
+import 'package:showtime_mobile/app/navigation/app_router.dart';
+import 'package:showtime_mobile/core/eligibility/eligibility.dart';
+import 'package:showtime_mobile/shared/ui/ui.dart';
 
 void main() {
   Future<GoRouterHarness> pumpHome(WidgetTester tester) async {
@@ -15,9 +15,11 @@ void main() {
     final router = createShowtimeRouter(eligibility: eligibility);
     await tester.binding.setSurfaceSize(const Size(390, 4200));
     await tester.pumpWidget(
-      MaterialApp.router(
-        theme: MidnightThemeData.apply(),
-        routerConfig: router,
+      ProviderScope(
+        child: MaterialApp.router(
+          theme: MidnightThemeData.apply(),
+          routerConfig: router,
+        ),
       ),
     );
     router.go('/home');
@@ -125,13 +127,15 @@ void main() {
     for (final width in [360.0, 390.0, 430.0]) {
       await tester.binding.setSurfaceSize(Size(width, 844));
       await tester.pumpWidget(
-        MaterialApp.router(
-          theme: MidnightThemeData.apply(),
-          routerConfig: router,
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context)
-                .copyWith(padding: const EdgeInsets.only(bottom: 24)),
-            child: child ?? const SizedBox.shrink(),
+        ProviderScope(
+          child: MaterialApp.router(
+            theme: MidnightThemeData.apply(),
+            routerConfig: router,
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(padding: const EdgeInsets.only(bottom: 24)),
+              child: child ?? const SizedBox.shrink(),
+            ),
           ),
         ),
       );

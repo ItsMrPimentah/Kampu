@@ -11,9 +11,14 @@
         "program": "lib/main.dart"
     },
         {
-            "name": "mobile",
+            "name": "mobile (Debug Local)",
             "request": "launch",
-            "type": "dart"
+            "type": "dart",
+            "flutterMode": "debug",
+            "toolArgs": [
+                "--dart-define=API_BASE_URL=http://localhost:3001"
+            ],
+
         },
         {
             "name": "mobile (profile mode)",

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:showtime_mobile/discovery/local_fixtures.dart';
-import 'package:showtime_mobile/theme/midnight_theme.dart';
+import 'package:showtime_mobile/core/discovery/local_fixtures.dart';
+import 'package:showtime_mobile/shared/ui/ui.dart';
 
 void main() {
   test('local fixture loading is deterministic and backend independent', () {

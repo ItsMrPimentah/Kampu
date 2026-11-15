@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:showtime_mobile/auth/auth_client.dart';
-import 'package:showtime_mobile/core/auth/auth_repository.dart';
+import 'package:showtime_mobile/app/auth/auth_client.dart';
+import 'package:showtime_mobile/app/auth/auth_repository.dart';
+import 'package:showtime_mobile/core/eligibility/eligibility.dart';
+import 'package:showtime_mobile/core/registration/registration_models.dart';
 import 'package:showtime_mobile/shared/external/utils/result.dart';
 
 import 'mocks/auth_mocks.dart';
@@ -36,6 +38,58 @@ void main() {
     expect(client.hasSession, isTrue);
     expect(client.verified, isTrue);
     expect(client.connectionFailed, isFalse);
+  });
+
+  test('unverified login and restoration leave SMS delivery unknown', () async {
+    when(() => repository.login('name', 'password')).thenAnswer(
+      (_) async => const Result.val({'token': 'token', 'verified': false}),
+    );
+    when(() => repository.readToken())
+        .thenAnswer((_) async => const Result.val('token'));
+    when(() => repository.session('token')).thenAnswer(
+      (_) async => const Result.val({
+        'verified': false,
+        'phone': 'test',
+        'user': {'dateOfBirth': '2000-01-01'},
+      }),
+    );
+    client.smsSent = false;
+    await client.login('name', 'password');
+    expect(client.smsSent, isNull);
+    client.smsSent = true;
+    await client.restore();
+    expect(client.smsSent, isNull);
+    expect(client.verified, isFalse);
+  });
+
+  test('registration and resend track known SMS results', () async {
+    final input = RegistrationSubmission(
+      role: RegistrationRole.player,
+      fullName: 'Player',
+      dateOfBirth: '2000-01-01',
+      phone: '+351912345678',
+      email: 'player@example.com',
+      password: 'password',
+      eligibility: evaluateEligibility('2000-01-01'),
+    );
+    var sent = false;
+    when(() => repository.register(input)).thenAnswer(
+      (_) async =>
+          Result.val({'token': 'token', 'verified': false, 'sent': sent}),
+    );
+    when(() => repository.resend('token'))
+        .thenAnswer((_) async => const Result.err(AuthFailure.unavailable));
+    await client.register(input);
+    expect(client.smsSent, isFalse);
+    await client.resend();
+    expect(client.smsSent, isFalse);
+    when(() => repository.resend('token'))
+        .thenAnswer((_) async => const Result.val(Ok()));
+    await client.resend();
+    expect(client.smsSent, isTrue);
+    sent = true;
+    await client.register(input);
+    expect(client.smsSent, isTrue);
   });
 
   test('preserves the token when restoration fails transiently', () async {

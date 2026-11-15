@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:showtime_mobile/onboarding/eligibility.dart';
+import 'package:showtime_mobile/core/eligibility/eligibility.dart';
 
 void main() {
   final today = DateTime.utc(2026, 10, 19);
