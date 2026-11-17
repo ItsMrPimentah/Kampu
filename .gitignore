@@ -1,0 +1,17 @@
+node_modules/
+**/.fvm/
+dist/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+.env*
+.env.*
+!.env.example
+coverage/
+.DS_Store
+
+# FVM Version Cache
+.fvm/
+.devbox/

@@ -1,0 +1,42 @@
+schema: spec-driven
+
+context: |
+  This application is built with Flutter.
+
+  Google Stitch is the primary UI/UX design reference,
+  but pixel-perfect reproduction is not required.
+
+  Preserve:
+  - Screen structure and visual hierarchy
+  - Navigation and interaction patterns
+  - Component intent and content organization
+  - Core branding and design consistency
+
+  Prefer:
+  - Existing Flutter widgets and shared components
+  - Existing application architecture
+  - Project theme and design tokens
+  - Responsive, accessible Flutter layouts
+
+  Stitch HTML and React code are reference materials,
+  not production implementation code.
+
+rules:
+  design:
+    - Reference the relevant Google Stitch screens.
+    - Map design patterns to Flutter components.
+    - Document justified deviations from Stitch.
+
+  tasks:
+    - Retrieve and validate Stitch references before UI work.
+    - Reuse existing Flutter components where possible.
+    - Include visual and functional acceptance checks.
+
+operations:
+  apply:
+    guidance:
+      - Inspect verified Stitch references before UI changes.
+      - Implement using native Flutter widgets.
+      - Do not invent alternative screen structures.
+      - Run Flutter analysis and relevant tests.
+      - Report visual differences from Stitch.

@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: showtime
+          POSTGRES_PASSWORD: showtime
+          POSTGRES_DB: showtime
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U showtime -d showtime"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://showtime:showtime@localhost:5432/showtime
+      REDIS_URL: redis://localhost:6379
+      MINIO_ENDPOINT: localhost
+      MINIO_PORT: 9000
+      MINIO_USE_SSL: false
+      MINIO_ACCESS_KEY: showtime
+      MINIO_SECRET_KEY: showtime-secret
+      MINIO_BUCKET: showtime
+      BETTER_AUTH_SECRET: ci-only-secret
+      STRIPE_MODE: test
+      STRIPE_SECRET_KEY: sk_test_ci_only
+      FEATURE_NATIVE_BOOKING: false
+      FEATURE_PAYMENTS: false
+      FEATURE_ADVERTISING: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+      - run: npm run test:security
+      - run: npm --workspace apps/api run db:migrate
+
+  mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jetify-com/devbox-install-action@v0.14.0
+      - run: devbox run -q script "cd apps/mobile; ^fvm install"
+      - run: devbox run -q analyze
+      - run: devbox run -q test

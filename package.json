@@ -1,0 +1,17 @@
+{
+  "name": "showtime-football-community",
+  "private": true,
+  "workspaces": ["apps/api"],
+  "scripts": {
+    "dev:api": "npm --workspace apps/api run start:dev",
+    "build:api": "npm --workspace apps/api run build",
+    "test:api": "npm --workspace apps/api run test",
+    "typecheck": "npm --workspace apps/api run typecheck",
+    "infra:config": "docker compose -f infra/docker-compose.yml config",
+    "verify": "npm run infra:config && npm run typecheck && npm run test:api",
+    "flutter:setup": "cd apps/mobile && fvm install && fvm flutter pub get",
+    "flutter:test": "cd apps/mobile && fvm flutter test",
+    "flutter:analyze": "cd apps/mobile && fvm flutter analyze",
+    "test:security": "npm --workspace apps/api run test -- --test-name-pattern='authorization|idempot|privacy|audit|policy'"
+  }
+}

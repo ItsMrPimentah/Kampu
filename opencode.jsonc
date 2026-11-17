@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "mcp": {
+    "servers": {
+      "stitch": {
+        "type": "remote",
+        "url": "https://stitch.googleapis.com/mcp",
+        "oauth": false,
+        "enable": true,
+        "headers": {
+          "X-Goog-Api-Key": "{env:GOOGLE_STITCH_KEY}"
+        }
+      }
+    }
+    
+  }
+}

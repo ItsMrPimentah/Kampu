@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" role="img" aria-label="Showtime placeholder">
+  <rect width="640" height="360" fill="#1F2433"/>
+  <circle cx="320" cy="180" r="72" fill="#5B63D3" opacity=".8"/>
+  <path d="M320 125l16 38 41 3-32 26 10 40-35-22-35 22 10-40-32-26 41-3z" fill="#C9D3EE"/>
+</svg>

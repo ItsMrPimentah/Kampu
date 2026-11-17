@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.18.4/.schema/devbox.schema.json",
+  "packages": ["fvm@3.2.1", "git@2.51.0", "nushell@0.113.1", "rtk@0.50.0"],
+  "shell": {
+    "scripts": {
+      "format": "nu -c 'source devenv.nu; format'",
+      "test": "nu -c 'source devenv.nu; test'",
+      "analyze": "nu -c 'source devenv.nu; analyze'",
+      "script": "nu scripts/script.nu \"$@\""
+    }
+  }
+}
